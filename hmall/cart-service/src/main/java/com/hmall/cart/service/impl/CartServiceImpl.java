@@ -1,8 +1,12 @@
 package com.hmall.cart.service.impl;
 
+import cn.hutool.Hutool;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmall.cart.client.ItemClient;
 import com.hmall.cart.domain.dto.CartFormDTO;
 import com.hmall.cart.domain.dto.ItemDTO;
 import com.hmall.cart.domain.po.Cart;
@@ -14,7 +18,14 @@ import com.hmall.common.utils.BeanUtils;
 import com.hmall.common.utils.CollUtils;
 import com.hmall.common.utils.UserContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +45,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements ICartService {
 
-//    private final IItemService itemService;
+    //    private final IItemService itemService;
+/*
+    private final RestTemplate restTemplate;
+    private final DiscoveryClient discoveryClient;
+    使用 FeignClient 实现
+*/
+    private final ItemClient itemClient;
 
     @Override
     public void addItem2Cart(CartFormDTO cartFormDTO) {
@@ -42,7 +59,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         Long userId = UserContext.getUser();
 
         // 2.判断是否已经存在
-        if(checkItemExists(cartFormDTO.getItemId(), userId)){
+        if (checkItemExists(cartFormDTO.getItemId(), userId)) {
             // 2.1.存在，则更新数量
             baseMapper.updateNum(cartFormDTO.getItemId(), userId);
             return;
@@ -62,7 +79,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     @Override
     public List<CartVO> queryMyCarts() {
         // 1.查询我的购物车列表
-//        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, UserContext.getUser()).list(); TODO 待处理用户ID
+//        List<Cart> carts = lambdaQuery().eq(Cart::getUserId, UserContext.getUser()).list(); TODO 获取当前登录的用户
         List<Cart> carts = lambdaQuery().eq(Cart::getUserId, 1L).list();
         if (CollUtils.isEmpty(carts)) {
             return CollUtils.emptyList();
@@ -78,12 +95,43 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
         return vos;
     }
 
+
     private void handleCartItems(List<CartVO> vos) {
-        // 1.获取商品id
+        // TODO 1.获取商品id
         Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
         // 2.查询商品
-//        List<ItemDTO> items = itemService.queryItemByIds(itemIds); TODO 涉及远程调用，稍后处理
-        List<ItemDTO> items = null ;
+//        // List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+//        // 2.1 根据服务名称 获取服务实例列表
+//        List<ServiceInstance> instances = discoveryClient.getInstances("item-service");
+//        if (CollUtils.isEmpty(instances)) {
+//            return;
+//        }
+//        // 2.2 手写负载均衡，从服务列表中挑选一个实例
+//        int i = RandomUtil.randomInt(instances.size());
+//        ServiceInstance instance = instances.get(i);
+////        String url = "http://" + instance.getHost() + ":" + instance.getPort() + "/items?ids={ids}";
+//
+//        // 2.3.利用RestTemplate发起http请求，得到http的响应
+//        ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
+////                "http://localhost:8081/items?ids={ids}",
+//                instance.getUri() + "/items?ids={ids}",
+//                HttpMethod.GET,
+//                null,
+//                new ParameterizedTypeReference<List<ItemDTO>>() {
+//                },
+//                Map.of("ids", CollUtil.join(itemIds, ","))
+//        );
+//        // 2.2.解析响应
+//        if (!response.getStatusCode().is2xxSuccessful()) {
+//            // 查询失败，直接结束
+//            return;
+//        }
+//        List<ItemDTO> items = response.getBody();
+//        if (CollUtils.isEmpty(items)) {
+//            return;
+//        }
+
+        List<ItemDTO> items = itemClient.queryItemByIds(itemIds);
         if (CollUtils.isEmpty(items)) {
             return;
         }
@@ -100,7 +148,93 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
             v.setStock(item.getStock());
         }
     }
+///*
+//    private void handleCartItems(List<CartVO> vos) {
+//        // TODO 1.获取商品id
+//        Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+//        // 2.查询商品
+//        // List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+//        // 2.1 根据服务名称 获取服务实例列表
+//        List<ServiceInstance> instances = discoveryClient.getInstances("item-service");
+//        if (CollUtils.isEmpty(instances)) {
+//            return;
+//        }
+//        // 2.2 手写负载均衡，从服务列表中挑选一个实例
+//        int i = RandomUtil.randomInt(instances.size());
+//        ServiceInstance instance = instances.get(i);
+////        String url = "http://" + instance.getHost() + ":" + instance.getPort() + "/items?ids={ids}";
+//
+//        // 2.3.利用RestTemplate发起http请求，得到http的响应
+//        ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
 
+    /// /                "http://localhost:8081/items?ids={ids}",
+//                instance.getUri() + "/items?ids={ids}",
+//                HttpMethod.GET,
+//                null,
+//                new ParameterizedTypeReference<List<ItemDTO>>() {
+//                },
+//                Map.of("ids", CollUtil.join(itemIds, ","))
+//        );
+//        // 2.2.解析响应
+//        if (!response.getStatusCode().is2xxSuccessful()) {
+//            // 查询失败，直接结束
+//            return;
+//        }
+//        List<ItemDTO> items = response.getBody();
+//        if (CollUtils.isEmpty(items)) {
+//            return;
+//        }
+//        // 3.转为 id 到 item的map
+//        Map<Long, ItemDTO> itemMap = items.stream().collect(Collectors.toMap(ItemDTO::getId, Function.identity()));
+//        // 4.写入vo
+//        for (CartVO v : vos) {
+//            ItemDTO item = itemMap.get(v.getItemId());
+//            if (item == null) {
+//                continue;
+//            }
+//            v.setNewPrice(item.getPrice());
+//            v.setStatus(item.getStatus());
+//            v.setStock(item.getStock());
+//        }
+//    }*/
+
+
+//    private void handleCartItems(List<CartVO> vos) {
+//        // TODO 1.获取商品id
+//        Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
+//        // 2.查询商品
+//        // List<ItemDTO> items = itemService.queryItemByIds(itemIds);
+//        // 2.1.利用RestTemplate发起http请求，得到http的响应
+//        ResponseEntity<List<ItemDTO>> response = restTemplate.exchange(
+//                "http://localhost:8081/items?ids={ids}",
+//                HttpMethod.GET,
+//                null,
+//                new ParameterizedTypeReference<List<ItemDTO>>() {
+//                },
+//                Map.of("ids", CollUtil.join(itemIds, ","))
+//        );
+//        // 2.2.解析响应
+//        if(!response.getStatusCode().is2xxSuccessful()){
+//            // 查询失败，直接结束
+//            return;
+//        }
+//        List<ItemDTO> items = response.getBody();
+//        if (CollUtils.isEmpty(items)) {
+//            return;
+//        }
+//        // 3.转为 id 到 item的map
+//        Map<Long, ItemDTO> itemMap = items.stream().collect(Collectors.toMap(ItemDTO::getId, Function.identity()));
+//        // 4.写入vo
+//        for (CartVO v : vos) {
+//            ItemDTO item = itemMap.get(v.getItemId());
+//            if (item == null) {
+//                continue;
+//            }
+//            v.setNewPrice(item.getPrice());
+//            v.setStatus(item.getStatus());
+//            v.setStock(item.getStock());
+//        }
+//    }
     @Override
     public void removeByItemIds(Collection<Long> itemIds) {
         // 1.构建删除条件，userId和itemId

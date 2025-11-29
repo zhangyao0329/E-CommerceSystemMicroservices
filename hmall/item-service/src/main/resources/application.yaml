@@ -3,6 +3,9 @@ server:
 spring:
   application:
     name: item-service
+  cloud:
+    nacos:
+      server-addr: 110.41.61.31:8848
   profiles:
     active: local
   datasource:
