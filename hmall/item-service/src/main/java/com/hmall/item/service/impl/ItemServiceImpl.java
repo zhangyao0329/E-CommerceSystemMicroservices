@@ -8,7 +8,9 @@ import com.hmall.common.utils.BeanUtils;
 import com.hmall.item.domain.po.Item;
 import com.hmall.item.mapper.ItemMapper;
 import com.hmall.item.service.IItemService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,20 +23,35 @@ import java.util.List;
  * @author 虎哥
  */
 @Service
+@RequiredArgsConstructor // 自动注入
 public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements IItemService {
+    private final ItemMapper itemMapper; // 注入Mapper
 
     @Override
+    @Transactional // 确保事务一致性
     public void deductStock(List<OrderDetailDTO> items) {
-        String sqlStatement = "com.hmall.item.ItemMapper.updateStock";
-        boolean r = false;
-        try {
-            r = executeBatch(items, (sqlSession, entity) -> sqlSession.update(sqlStatement, entity));
-        } catch (Exception e) {
-            throw new BizIllegalException("更新库存异常，可能是库存不足!", e);
+        int totalUpdated = 0;
+        // 1. 循环执行批量扣减操作
+        for (OrderDetailDTO detail : items) {
+            // 2. 调用Mapper方法，执行带库存检查的UPDATE
+            int updatedRows = itemMapper.updateStock(detail);
+
+            // 3. 检查影响行数。如果影响行数等于 0，则说明库存不足。
+            if (updatedRows == 0) {
+                // 如果是批量操作中的第一个或中间的项，并且前面已经有成功的更新，
+                // 此时应该抛出异常并触发事务回滚。
+                throw new BizIllegalException("商品id: " + detail.getItemId() + " 库存不足！");
+            }
+            totalUpdated++;
         }
-        if (!r) {
-            throw new BizIllegalException("库存不足！");
+
+        // 4. (可选) 确保所有项都成功更新
+        if (totalUpdated != items.size()) {
+            // 实际上由于上面的 if 检查和抛出异常，这一步基本不会执行到，
+            // 除非updateStock方法返回了负数（不可能）或出现其它非预期情况
+            throw new BizIllegalException("批量更新库存失败！");
         }
+
     }
 
     @Override

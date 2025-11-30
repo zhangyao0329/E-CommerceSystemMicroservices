@@ -20,14 +20,14 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/users/**,/addresses/**
-#        - id: trade
-#          uri: lb://trade-service
-#          predicates:
-#            - Path=/orders/**
-#        - id: pay
-#          uri: lb://pay-service
-#          predicates:
-#            - Path=/pay-orders/**
+        - id: trade
+          uri: lb://trade-service
+          predicates:
+            - Path=/orders/**
+        - id: pay
+          uri: lb://pay-service
+          predicates:
+            - Path=/pay-orders/**
 hm:
   jwt:
     location: classpath:hmall.jks
