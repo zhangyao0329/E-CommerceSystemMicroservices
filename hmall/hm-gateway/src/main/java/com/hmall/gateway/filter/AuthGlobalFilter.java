@@ -3,6 +3,7 @@ package com.hmall.gateway.filter;
 import com.hmall.common.exception.UnauthorizedException;
 import com.hmall.common.utils.CollUtils;
 import com.hmall.gateway.config.AuthProperties;
+import com.hmall.gateway.constant.RequestHead;
 import com.hmall.gateway.util.JwtTool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -56,10 +57,12 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return response.setComplete();
         }
 
-        // TODO 5.如果有效，传递用户信息
-        System.out.println("userId = " + userId);
+        // 5.如果有效，传递用户信息
+        String userInfo = userId.toString();
+        ServerWebExchange build = exchange.mutate()
+                .request(builder -> builder.header(RequestHead.AUTH_TOKEN, userInfo)).build();
         // 6.放行
-        return chain.filter(exchange);
+        return chain.filter(build);
     }
 
     private boolean isExclude(String antPath) {
