@@ -1,5 +1,6 @@
 package com.hmall.api.config;
 
+import com.hmall.api.client.fallback.ItemClientFallbackFactory;
 import com.hmall.common.utils.UserContext;
 import feign.Logger;
 import feign.RequestInterceptor;
@@ -11,14 +12,15 @@ public class DefaultFeignConfig {
     public Logger.Level feignLogLevel() {
         return Logger.Level.FULL;
     }
+
     @Bean
-    public RequestInterceptor userInfoRequestInterceptor(){
+    public RequestInterceptor userInfoRequestInterceptor() {
         return new RequestInterceptor() {
             @Override
             public void apply(RequestTemplate template) {
                 // 获取登录用户
                 Long userId = UserContext.getUser();
-                if(userId == null) {
+                if (userId == null) {
                     // 如果为空则直接跳过
                     return;
                 }
@@ -27,4 +29,11 @@ public class DefaultFeignConfig {
             }
         };
     }
+
+    @Bean
+    public ItemClientFallbackFactory itemClientFallbackFactory() {
+        return new ItemClientFallbackFactory();
+    }
+
+
 }
