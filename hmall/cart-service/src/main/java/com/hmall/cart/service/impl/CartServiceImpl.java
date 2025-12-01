@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmall.api.client.ItemClient;
 import com.hmall.api.dto.ItemDTO;
+import com.hmall.cart.config.CartProperties;
 import com.hmall.cart.domain.dto.CartFormDTO;
 import com.hmall.cart.domain.po.Cart;
 import com.hmall.cart.domain.vo.CartVO;
@@ -52,6 +53,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
     使用 FeignClient 实现
 */
     private final ItemClient itemClient;
+    private final CartProperties cartProperties;
 
     @Override
     public void addItem2Cart(CartFormDTO cartFormDTO) {
@@ -247,8 +249,11 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
     private void checkCartsFull(Long userId) {
         Long count = lambdaQuery().eq(Cart::getUserId, userId).count();
-        if (count >= 10) {
-            throw new BizIllegalException(StrUtil.format("用户购物车课程不能超过{}", 10));
+//        购物车的上限为10，如果超过则抛出异常
+//        改造上限为配置属性，在配置文件里面读取，并交给nacos管理，实现热更新
+        Integer maxAmount = cartProperties.getMaxAmount();
+        if (count >= maxAmount) {
+            throw new BizIllegalException(StrUtil.format("用户购物车课程不能超过{}", maxAmount));
         }
     }
 

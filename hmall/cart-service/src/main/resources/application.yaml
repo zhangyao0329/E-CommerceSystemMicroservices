@@ -10,3 +10,5 @@ hm:
     description: "黑马商城购物车服务接口文档"
   db:
     database: hm-cart
+  cart:
+    max-amount: 20 # 购物车商品最大数量
