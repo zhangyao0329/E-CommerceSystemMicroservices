@@ -18,6 +18,7 @@ import com.hmall.common.exception.BizIllegalException;
 import com.hmall.common.utils.BeanUtils;
 import com.hmall.common.utils.CollUtils;
 import com.hmall.common.utils.UserContext;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
@@ -201,7 +202,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 
 
 //    private void handleCartItems(List<CartVO> vos) {
-//        // TODO 1.获取商品id
+//        //  1.获取商品id
 //        Set<Long> itemIds = vos.stream().map(CartVO::getItemId).collect(Collectors.toSet());
 //        // 2.查询商品
 //        // List<ItemDTO> items = itemService.queryItemByIds(itemIds);
@@ -237,6 +238,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements IC
 //        }
 //    }
     @Override
+    @GlobalTransactional
     public void removeByItemIds(Collection<Long> itemIds) {
         // 1.构建删除条件，userId和itemId
         QueryWrapper<Cart> queryWrapper = new QueryWrapper<Cart>();

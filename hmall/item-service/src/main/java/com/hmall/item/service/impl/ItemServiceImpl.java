@@ -8,6 +8,7 @@ import com.hmall.common.utils.BeanUtils;
 import com.hmall.item.domain.po.Item;
 import com.hmall.item.mapper.ItemMapper;
 import com.hmall.item.service.IItemService;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,8 @@ public class ItemServiceImpl extends ServiceImpl<ItemMapper, Item> implements II
     private final ItemMapper itemMapper; // 注入Mapper
 
     @Override
-    @Transactional // 确保事务一致性
+    /*@Transactional*/ // 确保事务一致性
+    @GlobalTransactional
     public void deductStock(List<OrderDetailDTO> items) {
         int totalUpdated = 0;
         // 1. 循环执行批量扣减操作
