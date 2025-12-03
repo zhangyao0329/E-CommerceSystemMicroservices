@@ -7,6 +7,14 @@ hm:
     description: "黑马商城交易服务接口文档"
   db:
     database: hm-trade
+spring:
+  rabbitmq:
+    host: 110.41.61.31 # 你的虚拟机IP
+    port: 5672 # 端口
+    virtual-host: /hmall # 虚拟主机
+    username: hmall # 用户名
+    password: 123 # 密码
+
 #spring:
 #  application:
 #    name: trade-service # 服务名称

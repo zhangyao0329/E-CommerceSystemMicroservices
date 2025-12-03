@@ -34,3 +34,7 @@ build/
 .fastRequest
 
 application-prod.yml
+
+
+log/
+.log
